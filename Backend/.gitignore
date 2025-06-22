@@ -75,10 +75,89 @@ cython_debug/
 # macOS
 .DS_Store
 
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
 # Custom project folders
 uploads/
 outputs/
+logs/
+training_data/
 
 # Environment variables / secrets
 config.env
-.env 
+.env
+*.env
+
+# Model files and data
+*.bin
+*.safetensors
+*.pkl
+*.pickle
+*.joblib
+*.h5
+*.hdf5
+*.onnx
+*.pb
+*.tflite
+*.pt
+*.pth
+*.ckpt
+*.weights
+
+# Large data files
+*.csv
+*.json
+*.jsonl
+*.parquet
+*.feather
+*.arrow
+*.hdf
+*.h5
+*.nc
+*.netcdf
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Log files
+*.log
+*.log.*
+logs/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Compressed files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Shell scripts (if they contain sensitive data)
+*.sh
+
+# Ollama specific
+ollama/
+models/
+
+# API keys and credentials
+api_keys.txt
+credentials.json
+secrets.json 
