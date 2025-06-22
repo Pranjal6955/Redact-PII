@@ -296,7 +296,7 @@ export default function FileUpload() {
       </div>
 
       {/* Action Button */}
-      <div className="flex justify-center">
+      <div className="flex justify-center space-x-4">
         <button
           onClick={handleUpload}
           disabled={uploading || !selectedFile || selectedTypes.length === 0}
@@ -313,6 +313,15 @@ export default function FileUpload() {
               Process File
             </>
           )}
+        </button>
+        <button
+          onClick={() => { setSelectedTypes([]); handleUpload(); }}
+          disabled={uploading || !selectedFile}
+          title="Auto-detect all PII types"
+          className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg shadow-sm hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+        >
+          <Zap className="w-5 h-5 mr-2" />
+          Auto
         </button>
       </div>
 

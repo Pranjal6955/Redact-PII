@@ -134,7 +134,7 @@ export default function TextRedaction() {
       </div>
 
       {/* Action Button */}
-      <div className="flex justify-center">
+      <div className="flex justify-center space-x-4">
         <button
           onClick={handleRedact}
           disabled={loading || !text.trim() || selectedTypes.length === 0}
@@ -151,6 +151,15 @@ export default function TextRedaction() {
               Redact Text
             </>
           )}
+        </button>
+        <button
+          onClick={() => { setSelectedTypes([]); handleRedact(); }}
+          disabled={loading || !text.trim()}
+          title="Auto-detect all PII types"
+          className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-teal-600 text-white font-medium rounded-lg shadow-sm hover:from-green-700 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+        >
+          <Zap className="w-5 h-5 mr-2" />
+          Auto
         </button>
       </div>
 
