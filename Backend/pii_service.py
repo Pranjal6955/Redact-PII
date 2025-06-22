@@ -18,23 +18,39 @@ class PIIService:
     async def redact_text(
         self, 
         request: RedactRequest,
-        use_hybrid: bool = True
+        use_hybrid: bool = True,
+        auto_detect_all: bool = True
     ) -> Tuple[bool, RedactResponse, Optional[str]]:
         """
-        Redact PII from text using hybrid approach
+        Redact PII from text using hybrid approach with automatic detection
         
         Args:
             request: RedactRequest object with text and configuration
             use_hybrid: Whether to use hybrid approach (LLM + regex fallback)
+            auto_detect_all: Whether to automatically detect all supported PII types
             
         Returns:
             Tuple of (success, RedactResponse, error_message)
         """
         try:
-            if use_hybrid:
-                return await self._hybrid_redact(request)
+            # If auto_detect_all is enabled, expand redact_types to include all supported types
+            if auto_detect_all:
+                all_types = self.get_all_supported_pii_types()
+                # Combine requested types with all supported types, removing duplicates
+                expanded_types = list(set(request.redact_types + all_types))
+                # Create new request with expanded types
+                enhanced_request = RedactRequest(
+                    text=request.text,
+                    redact_types=expanded_types,
+                    custom_tags=request.custom_tags
+                )
             else:
-                return await self._llm_only_redact(request)
+                enhanced_request = request
+            
+            if use_hybrid:
+                return await self._hybrid_redact(enhanced_request)
+            else:
+                return await self._llm_only_redact(enhanced_request)
                 
         except Exception as e:
             logger.error(f"Error in PII redaction: {str(e)}")
@@ -42,7 +58,7 @@ class PIIService:
     
     async def _hybrid_redact(self, request: RedactRequest) -> Tuple[bool, RedactResponse, Optional[str]]:
         """
-        Hybrid redaction: Use regex for supported types, LLM for others
+        Enhanced hybrid redaction with comprehensive PII detection
         """
         text = request.text
         redact_types = request.redact_types
@@ -58,6 +74,8 @@ class PIIService:
             else:
                 llm_types.append(pii_type)
         
+        logger.info(f"Regex types: {len(regex_types)}, LLM types: {len(llm_types)}")
+        
         # Step 1: Use regex for supported types
         regex_redacted = text
         regex_summary = {}
@@ -66,34 +84,41 @@ class PIIService:
             regex_redacted, regex_summary = self.regex_redactor.redact_text(
                 text, regex_types, custom_tags
             )
+            logger.info(f"Regex redaction found: {sum(regex_summary.values())} items")
         
-        # Step 2: Use LLM for remaining types
+        # Step 2: Use LLM for remaining types or as enhancement
         llm_summary = {}
         final_redacted = regex_redacted
         
-        if llm_types:
+        # Always use LLM if available, even for regex-supported types for better accuracy
+        all_types_for_llm = redact_types if llm_types or len(regex_types) > 0 else []
+        
+        if all_types_for_llm:
             # Check if Ollama is available
             is_connected, status = await self.ollama_client.check_connection()
             
             if is_connected:
                 success, llm_redacted, error = await self.ollama_client.redact_pii(
-                    regex_redacted, llm_types, custom_tags
+                    regex_redacted, all_types_for_llm, custom_tags
                 )
                 
                 if success:
                     final_redacted = llm_redacted
                     # Get analysis for summary
                     _, llm_summary, _ = await self.ollama_client.analyze_pii(
-                        regex_redacted, llm_types
+                        text, all_types_for_llm
                     )
+                    logger.info(f"LLM redaction enhanced with: {sum(llm_summary.values())} items")
                 else:
                     logger.warning(f"LLM redaction failed: {error}")
                     # Continue with regex-only result
             else:
                 logger.warning(f"Ollama not available: {status}")
         
-        # Combine summaries
-        combined_summary = {**regex_summary, **llm_summary}
+        # Combine summaries, prioritizing LLM results for accuracy
+        combined_summary = {**regex_summary}
+        for pii_type, count in llm_summary.items():
+            combined_summary[pii_type] = max(combined_summary.get(pii_type, 0), count)
         
         # Ensure all requested types are in summary
         for pii_type in redact_types:
@@ -177,18 +202,25 @@ class PIIService:
     
     def get_supported_types(self) -> Dict[str, List[str]]:
         """
-        Get information about supported PII types
+        Get comprehensive information about supported PII types
         
         Returns:
-            Dictionary with regex and llm supported types
+            Dictionary with detailed PII type information
         """
         return {
             "regex_supported": self.regex_redactor.get_supported_types(),
-            "all_supported": [
-                "name", "email", "phone", "address", 
-                "credit_card", "date"
-            ]
+            "all_supported": self.get_all_supported_pii_types(),
+            "critical_types": self.regex_redactor.get_critical_pii_types(),
+            "common_types": self.regex_redactor.get_common_pii_types(),
+            "auto_detect_types": PromptGenerator.get_auto_detect_types(),
+            "total_types": len(self.get_all_supported_pii_types())
         }
+    
+    def get_all_supported_pii_types(self) -> List[str]:
+        """Get all supported PII types from all sources"""
+        regex_types = set(self.regex_redactor.get_supported_types())
+        prompt_types = set(PromptGenerator.get_all_pii_types())
+        return sorted(list(regex_types.union(prompt_types)))
     
     async def get_service_status(self) -> Dict[str, str]:
         """
@@ -205,4 +237,4 @@ class PIIService:
             "ollama_message": status,
             "model_name": self.ollama_client.model_name,
             "hybrid_mode": "enabled"
-        } 
+        }

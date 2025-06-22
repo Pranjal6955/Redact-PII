@@ -8,7 +8,7 @@ import type { RedactionResponse } from '../types/api';
 
 export default function TextRedaction() {
   const [text, setText] = useState('');
-  const [selectedTypes, setSelectedTypes] = useState<string[]>(['name', 'email', 'phone']);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [customTags, setCustomTags] = useState<Record<string, string>>({});
   const [results, setResults] = useState<RedactionResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -21,11 +21,6 @@ export default function TextRedaction() {
       return;
     }
 
-    if (selectedTypes.length === 0) {
-      setError('Please select at least one PII type to redact');
-      return;
-    }
-
     setLoading(true);
     setError(null);
 
@@ -34,6 +29,7 @@ export default function TextRedaction() {
         text: text.trim(),
         redact_types: selectedTypes,
         custom_tags: Object.keys(customTags).length > 0 ? customTags : undefined,
+        auto_detect_all: selectedTypes.length === 0, // Auto-detect all if no types are selected
       });
       setResults(response);
     } catch (err) {

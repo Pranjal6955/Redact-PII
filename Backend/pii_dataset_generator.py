@@ -44,54 +44,70 @@ class PIIDatasetGenerator:
         day = random.randint(1, 28)
         return f"{month}/{day}/{year}"
 
+    def generate_random_ssn(self) -> str:
+        return f"{random.randint(100, 999)}-{random.randint(10, 99)}-{random.randint(1000, 9999)}"
+    
+    def generate_random_drivers_license(self) -> str:
+        formats = [
+            f"{random.choice('ABCDEFGHIJKLMNOPQRSTUVWXYZ')}{random.randint(1000000, 9999999)}",
+            f"{random.randint(100000000, 999999999)}",
+            f"{random.choice('ABCDEFGHIJKLMNOPQRSTUVWXYZ')}{random.randint(100000, 999999)}"
+        ]
+        return random.choice(formats)
+    
+    def generate_random_ip_address(self) -> str:
+        return f"{random.randint(1, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(1, 254)}"
+    
+    def generate_random_employee_id(self) -> str:
+        return f"EMP{random.randint(100000, 999999)}"
+
     def generate_sentence_with_pii(self, pii_types: List[str]) -> Tuple[str, str]:
         templates = [
             "My name is {name} and you can contact me at {email}.",
             "Please call {name} at {phone} for more information.",
             "I live at {address} and my credit card is {credit_card}.",
             "Contact {name} via email at {email} or phone at {phone}.",
-            "I was born on {date} and my name is {name}."
+            "I was born on {date} and my name is {name}.",
+            "My SSN is {ssn} and driver's license is {drivers_license}.",
+            "Employee {name} (ID: {employee_id}) can be reached at {email}.",
+            "Server IP {ip_address} hosts data for {name}.",
+            "Medical record {medical_record} belongs to patient {name}."
         ]
         
         template = random.choice(templates)
         original_text = template
         redacted_text = template
         
-        if "name" in pii_types:
-            name = self.generate_random_name()
-            original_text = original_text.replace("{name}", name)
-            redacted_text = redacted_text.replace("{name}", "[REDACTED_NAME]")
+        # Handle all PII types
+        replacements = {
+            "name": (self.generate_random_name, "[REDACTED_NAME]"),
+            "email": (self.generate_random_email, "[REDACTED_EMAIL]"),
+            "phone": (self.generate_random_phone, "[REDACTED_PHONE]"),
+            "address": (self.generate_random_address, "[REDACTED_ADDRESS]"),
+            "credit_card": (self.generate_random_credit_card, "[REDACTED_CREDIT_CARD]"),
+            "date": (self.generate_random_date, "[REDACTED_DATE]"),
+            "ssn": (self.generate_random_ssn, "[REDACTED_SSN]"),
+            "drivers_license": (self.generate_random_drivers_license, "[REDACTED_DRIVERS_LICENSE]"),
+            "ip_address": (self.generate_random_ip_address, "[REDACTED_IP_ADDRESS]"),
+            "employee_id": (self.generate_random_employee_id, "[REDACTED_EMPLOYEE_ID]"),
+            "medical_record": (lambda: f"MRN{random.randint(1000000, 9999999)}", "[REDACTED_MEDICAL_RECORD]")
+        }
         
-        if "email" in pii_types:
-            email = self.generate_random_email()
-            original_text = original_text.replace("{email}", email)
-            redacted_text = redacted_text.replace("{email}", "[REDACTED_EMAIL]")
-        
-        if "phone" in pii_types:
-            phone = self.generate_random_phone()
-            original_text = original_text.replace("{phone}", phone)
-            redacted_text = redacted_text.replace("{phone}", "[REDACTED_PHONE]")
-        
-        if "address" in pii_types:
-            address = self.generate_random_address()
-            original_text = original_text.replace("{address}", address)
-            redacted_text = redacted_text.replace("{address}", "[REDACTED_ADDRESS]")
-        
-        if "credit_card" in pii_types:
-            credit_card = self.generate_random_credit_card()
-            original_text = original_text.replace("{credit_card}", credit_card)
-            redacted_text = redacted_text.replace("{credit_card}", "[REDACTED_CREDIT_CARD]")
-        
-        if "date" in pii_types:
-            date = self.generate_random_date()
-            original_text = original_text.replace("{date}", date)
-            redacted_text = redacted_text.replace("{date}", "[REDACTED_DATE]")
+        for pii_type in pii_types:
+            if pii_type in replacements and f"{{{pii_type}}}" in template:
+                generator_func, redacted_tag = replacements[pii_type]
+                value = generator_func()
+                original_text = original_text.replace(f"{{{pii_type}}}", value)
+                redacted_text = redacted_text.replace(f"{{{pii_type}}}", redacted_tag)
         
         return original_text, redacted_text
 
     def generate_dataset(self, num_samples: int = 1000) -> List[Dict]:
         dataset = []
-        all_pii_types = ["name", "email", "phone", "address", "credit_card", "date"]
+        all_pii_types = [
+            "name", "email", "phone", "address", "credit_card", "date", "ssn",
+            "drivers_license", "ip_address", "employee_id", "medical_record"
+        ]
         
         for i in range(num_samples):
             num_pii_types = random.randint(1, 4)
@@ -123,6 +139,11 @@ TYPES OF PII TO DETECT AND REDACT:
 - address: physical addresses (complete addresses including street, city, state/province, zip/postal code, country)
 - credit_card: credit card numbers, debit card numbers (any format: 4111-1111-1111-1111, 4111 1111 1111 1111, 4111111111111111, etc.)
 - date: personal dates (birth dates, anniversary dates, personal milestones, not general dates or holidays)
+- ssn: Social Security Numbers (any format: 123-45-6789, 123-456-789, etc.)
+- drivers_license: Driver's License numbers (various formats depending on the state or country)
+- ip_address: IP addresses (any format: 192.168.1.1, 255.255.255.255, etc.)
+- employee_id: Employee IDs (format: EMP123456)
+- medical_record: Medical record numbers (format: MRN1234567)
 
 REPLACEMENT MAPPING:
 - name → [REDACTED_NAME]
@@ -131,6 +152,11 @@ REPLACEMENT MAPPING:
 - address → [REDACTED_ADDRESS]
 - credit_card → [REDACTED_CREDIT_CARD]
 - date → [REDACTED_DATE]
+- ssn → [REDACTED_SSN]
+- drivers_license → [REDACTED_DRIVERS_LICENSE]
+- ip_address → [REDACTED_IP_ADDRESS]
+- employee_id → [REDACTED_EMPLOYEE_ID]
+- medical_record → [REDACTED_MEDICAL_RECORD]
 
 CRITICAL INSTRUCTIONS:
 1. CAREFULLY analyze the text and identify ALL instances of the specified PII types
@@ -143,6 +169,11 @@ CRITICAL INSTRUCTIONS:
 8. For addresses: Redact complete addresses including street, city, state/province, zip/postal code, country
 9. For credit cards: Redact credit/debit card numbers (4111-1111-1111-1111, 4111 1111 1111 1111, 4111111111111111, etc.)
 10. For dates: Focus on personal dates like birth dates, anniversary dates, personal milestones, not general dates or holidays
+11. For SSNs: Redact Social Security Numbers in any format (123-45-6789, 123-456-789, etc.)
+12. For driver's licenses: Redact Driver's License numbers in various formats
+13. For IP addresses: Redact IP addresses in any format (192.168.1.1, 255.255.255.255, etc.)
+14. For employee IDs: Redact Employee IDs (format: EMP123456)
+15. For medical records: Redact Medical record numbers (format: MRN1234567)
 
 IMPORTANT: Return ONLY the redacted text. Do not add any explanations, markdown formatting, or additional text.
 
@@ -191,4 +222,4 @@ def main():
     print("- pii_validation_data.json: Validation set")
 
 if __name__ == "__main__":
-    main() 
+    main()

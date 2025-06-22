@@ -26,7 +26,7 @@ export const apiService = {
     return handleResponse(response);
   },
 
-  async getSupportedTypes(): Promise<string[]> {
+  async getSupportedTypes(): Promise<import('../types/api').SupportedTypesResponse> {
     const response = await fetch(`${API_BASE_URL}/supported-types`);
     return handleResponse(response);
   },
@@ -42,7 +42,11 @@ export const apiService = {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(request),
+      body: JSON.stringify({
+        ...request,
+        // Auto-detect all types if no specific types are selected
+        auto_detect_all: request.redact_types.length === 0 ? true : request.auto_detect_all
+      }),
     });
     return handleResponse(response);
   },
@@ -67,7 +71,8 @@ export const apiService = {
     customTags?: Record<string, string>,
     exportFormat: string = 'both',
     useOCR: boolean = false,
-    preservePdfFormat: boolean = true
+    preservePdfFormat: boolean = true,
+    comprehensiveScan: boolean = true
   ): Promise<import('../types/api').FileUploadResponse> {
     const formData = new FormData();
     formData.append('file', file);
@@ -78,6 +83,7 @@ export const apiService = {
     formData.append('export_format', exportFormat);
     formData.append('use_ocr', useOCR.toString());
     formData.append('preserve_pdf_format', preservePdfFormat.toString());
+    formData.append('comprehensive_scan', comprehensiveScan.toString());
 
     const response = await fetch(`${API_BASE_URL}/redact-file`, {
       method: 'POST',

@@ -7,11 +7,12 @@ import type { FileUploadResponse } from '../types/api';
 
 export default function FileUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [selectedTypes, setSelectedTypes] = useState<string[]>(['name', 'email', 'phone']);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [customTags, setCustomTags] = useState<Record<string, string>>({});
   const [exportFormat, setExportFormat] = useState<string>('both');
   const [useOCR, setUseOCR] = useState(false);
   const [preservePdfFormat, setPreservePdfFormat] = useState(true);
+  const [comprehensiveScan, setComprehensiveScan] = useState(true);
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [results, setResults] = useState<FileUploadResponse | null>(null);
@@ -76,11 +77,6 @@ export default function FileUpload() {
       return;
     }
 
-    if (selectedTypes.length === 0) {
-      setError('Please select at least one PII type to redact');
-      return;
-    }
-
     setUploading(true);
     setError(null);
 
@@ -91,7 +87,8 @@ export default function FileUpload() {
         Object.keys(customTags).length > 0 ? customTags : undefined,
         exportFormat,
         useOCR,
-        preservePdfFormat
+        preservePdfFormat,
+        comprehensiveScan
       );
       setResults(response);
     } catch (err) {
@@ -215,6 +212,21 @@ export default function FileUpload() {
                 </label>
               ))}
             </div>
+          </div>
+
+          {/* Comprehensive Scan Option */}
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="comprehensive-scan"
+              checked={comprehensiveScan}
+              onChange={(e) => setComprehensiveScan(e.target.checked)}
+              className="w-4 h-4 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:bg-gray-700"
+            />
+            <label htmlFor="comprehensive-scan" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+              Enable comprehensive PII detection
+              <span className="text-gray-500 dark:text-gray-400 ml-1">(detects 20+ types of personal information)</span>
+            </label>
           </div>
 
           {/* OCR Option */}

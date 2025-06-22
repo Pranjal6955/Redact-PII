@@ -2,6 +2,7 @@ export interface RedactionRequest {
   text: string;
   redact_types: string[];
   custom_tags?: Record<string, string>;
+  auto_detect_all?: boolean;
 }
 
 export interface RedactionResponse {
@@ -41,6 +42,25 @@ export interface APIInfo {
 export interface PIIType {
   id: string;
   label: string;
+  description: string;
+  category?: string;
+  critical?: boolean;
+}
+
+export interface PIITypeCategory {
+  id: string;
+  label: string;
+  types: PIIType[];
+}
+
+export interface SupportedTypesResponse {
+  regex_supported: string[];
+  all_supported: string[];
+  critical_types: string[];
+  common_types: string[];
+  auto_detect_types: string[];
+  total_types: number;
+  categories: Record<string, string[]>;
   description: string;
 }
 

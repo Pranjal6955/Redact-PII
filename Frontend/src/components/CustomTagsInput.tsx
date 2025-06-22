@@ -14,10 +14,23 @@ const DEFAULT_TAGS: Record<string, string> = {
   phone: '[REDACTED_PHONE]',
   address: '[REDACTED_ADDRESS]',
   ssn: '[REDACTED_SSN]',
-  credit_card: '[REDACTED_CARD]',
-  ip_address: '[REDACTED_IP]',
-  url: '[REDACTED_URL]',
+  credit_card: '[REDACTED_CREDIT_CARD]',
   date: '[REDACTED_DATE]',
+  drivers_license: '[REDACTED_DRIVERS_LICENSE]',
+  passport: '[REDACTED_PASSPORT]',
+  bank_account: '[REDACTED_BANK_ACCOUNT]',
+  ip_address: '[REDACTED_IP_ADDRESS]',
+  medical_record: '[REDACTED_MEDICAL_RECORD]',
+  employee_id: '[REDACTED_EMPLOYEE_ID]',
+  license_plate: '[REDACTED_LICENSE_PLATE]',
+  vin: '[REDACTED_VIN]',
+  insurance_policy: '[REDACTED_INSURANCE_POLICY]',
+  tax_id: '[REDACTED_TAX_ID]',
+  credit_score: '[REDACTED_CREDIT_SCORE]',
+  biometric: '[REDACTED_BIOMETRIC]',
+  personal_url: '[REDACTED_PERSONAL_URL]',
+  mac_address: '[REDACTED_MAC_ADDRESS]',
+  guid: '[REDACTED_GUID]'
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -27,9 +40,22 @@ const TYPE_LABELS: Record<string, string> = {
   address: 'Physical Addresses',
   ssn: 'Social Security Numbers',
   credit_card: 'Credit Card Numbers',
-  ip_address: 'IP Addresses',
-  url: 'URLs',
   date: 'Dates',
+  drivers_license: 'Driver\'s Licenses',
+  passport: 'Passport Numbers',
+  bank_account: 'Bank Accounts',
+  ip_address: 'IP Addresses',
+  medical_record: 'Medical Records',
+  employee_id: 'Employee IDs',
+  license_plate: 'License Plates',
+  vin: 'Vehicle IDs (VIN)',
+  insurance_policy: 'Insurance Policies',
+  tax_id: 'Tax IDs / EINs',
+  credit_score: 'Credit Scores',
+  biometric: 'Biometric IDs',
+  personal_url: 'Personal URLs',
+  mac_address: 'MAC Addresses',
+  guid: 'GUIDs/UUIDs'
 };
 
 export default function CustomTagsInput({ customTags, onChange, selectedTypes, className = '' }: CustomTagsInputProps) {

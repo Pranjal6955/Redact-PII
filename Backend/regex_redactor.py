@@ -90,7 +90,37 @@ class RegexRedactor:
         # Date patterns - multiple formats for birth dates and personal dates
         "date": r'(?i:(?:Date\s+of\s+Birth|DOB|Birth\s+Date|Born)[\s:]*)?(?:\b(?:0?[1-9]|1[0-2])[-/.](?:0?[1-9]|[12][0-9]|3[01])[-/.](?:19|20)\d{2}\b|\b(?:0?[1-9]|[12][0-9]|3[01])[-/.](?:0?[1-9]|1[0-2])[-/.](?:19|20)\d{2}\b|\b(?:19|20)\d{2}[-/.](?:0?[1-9]|1[0-2])[-/.](?:0?[1-9]|[12][0-9]|3[01])\b)',
         # SSN patterns
-        "ssn": r'(?i:(?:Social\s+Security|SSN)(?:\s+Number)?[\s:]*)?(?:\b\d{3}[-.\s]?\d{2}[-.\s]?\d{4}\b)'
+        "ssn": r'(?i:(?:Social\s+Security|SSN)(?:\s+Number)?[\s:]*)?(?:\b\d{3}[-.\s]?\d{2}[-.\s]?\d{4}\b)',
+        # Driver's License patterns (US format)
+        "drivers_license": r'(?i:(?:Driver\'?s?\s+License|DL|License)[\s#:]*)?(?:\b[A-Z]{1,2}\d{6,8}\b|\b\d{8,9}\b|\b[A-Z]\d{7,8}\b|\b\d{2,3}-\d{2,3}-\d{4,6}\b)',
+        # Passport number patterns
+        "passport": r'(?i:(?:Passport|Pass\.?)(?:\s+(?:Number|No\.?|#))?[\s:]*)?(?:\b[A-Z]{1,2}\d{6,9}\b|\b\d{8,9}\b)',
+        # Bank account numbers
+        "bank_account": r'(?i:(?:Account|Acct)(?:\s+(?:Number|No\.?|#))?[\s:]*)?(?:\b\d{8,17}\b)',
+        # IP addresses (IPv4 and IPv6)
+        "ip_address": r'\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b|\b(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\b',
+        # Medical record numbers
+        "medical_record": r'(?i:(?:Medical\s+Record|MRN|Patient\s+ID)[\s#:]*)?(?:\b[A-Z]{2,3}\d{6,10}\b|\b\d{7,12}\b)',
+        # Employee ID
+        "employee_id": r'(?i:(?:Employee|EMP|Staff)\s+(?:ID|Number)[\s#:]*)?(?:\b[A-Z]{2,4}\d{4,8}\b|\b\d{6,10}\b)',
+        # License plate numbers
+        "license_plate": r'(?i:(?:License\s+Plate|Plate)[\s#:]*)?(?:\b[A-Z]{1,3}[-\s]?\d{1,4}[-\s]?[A-Z]{0,3}\b|\b\d{1,3}[-\s]?[A-Z]{2,3}[-\s]?\d{1,4}\b)',
+        # Vehicle VIN
+        "vin": r'(?i:(?:VIN|Vehicle\s+Identification)[\s#:]*)?(?:\b[A-HJ-NPR-Z0-9]{17}\b)',
+        # Insurance policy numbers
+        "insurance_policy": r'(?i:(?:Policy|Insurance)(?:\s+(?:Number|No\.?|#))?[\s:]*)?(?:\b[A-Z]{2,4}\d{6,12}\b|\b\d{8,15}\b)',
+        # Tax ID / EIN
+        "tax_id": r'(?i:(?:Tax\s+ID|EIN|Employer\s+Identification)[\s#:]*)?(?:\b\d{2}-\d{7}\b)',
+        # Credit score
+        "credit_score": r'(?i:(?:Credit\s+Score|FICO|Score)[\s:]*)?(?:\b[3-8]\d{2}\b)',
+        # Biometric data references
+        "biometric": r'(?i:(?:Fingerprint|Biometric|Retina|DNA)(?:\s+(?:ID|Data))?[\s#:]*)?(?:\b[A-Z0-9]{8,20}\b)',
+        # URLs with personal information
+        "personal_url": r'https?://(?:www\.)?(?:facebook|linkedin|twitter|instagram|github)\.com/[A-Za-z0-9._-]+',
+        # MAC addresses
+        "mac_address": r'\b(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b',
+        # GUID/UUID
+        "guid": r'\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b'
     }
     
     # Default replacement tags
@@ -101,7 +131,22 @@ class RegexRedactor:
         "name": "[REDACTED_NAME]",
         "address": "[REDACTED_ADDRESS]",
         "date": "[REDACTED_DATE]",
-        "ssn": "[REDACTED_SSN]"
+        "ssn": "[REDACTED_SSN]",
+        "drivers_license": "[REDACTED_DRIVERS_LICENSE]",
+        "passport": "[REDACTED_PASSPORT]",
+        "bank_account": "[REDACTED_BANK_ACCOUNT]",
+        "ip_address": "[REDACTED_IP_ADDRESS]",
+        "medical_record": "[REDACTED_MEDICAL_RECORD]",
+        "employee_id": "[REDACTED_EMPLOYEE_ID]",
+        "license_plate": "[REDACTED_LICENSE_PLATE]",
+        "vin": "[REDACTED_VIN]",
+        "insurance_policy": "[REDACTED_INSURANCE_POLICY]",
+        "tax_id": "[REDACTED_TAX_ID]",
+        "credit_score": "[REDACTED_CREDIT_SCORE]",
+        "biometric": "[REDACTED_BIOMETRIC]",
+        "personal_url": "[REDACTED_PERSONAL_URL]",
+        "mac_address": "[REDACTED_MAC_ADDRESS]",
+        "guid": "[REDACTED_GUID]"
     }
     
     @classmethod
@@ -177,6 +222,61 @@ class RegexRedactor:
         return any(indicator in text_lower for indicator in org_indicators)
 
     @classmethod
+    def _validate_pii_match(cls, text: str, pii_type: str) -> bool:
+        """
+        Enhanced validation for PII matches to reduce false positives
+        
+        Args:
+            text: The matched text to validate
+            pii_type: The type of PII being validated
+            
+        Returns:
+            Boolean indicating if match is valid
+        """
+        text_lower = text.lower().strip()
+        
+        # Apply specific validations based on PII type
+        if pii_type == "name":
+            return cls._is_likely_name(text) and not cls._is_likely_organization(text)
+        
+        elif pii_type == "credit_score":
+            # Credit scores are typically 300-850
+            try:
+                score = int(text)
+                return 300 <= score <= 850
+            except ValueError:
+                return False
+        
+        elif pii_type == "ip_address":
+            # Basic validation for private/public IP ranges
+            parts = text.split('.')
+            if len(parts) == 4:
+                try:
+                    # Skip obviously invalid IPs like 0.0.0.0, 255.255.255.255
+                    return not (all(p == '0' for p in parts) or all(p == '255' for p in parts))
+                except:
+                    return False
+            return True  # IPv6 addresses
+        
+        elif pii_type == "phone":
+            # Remove formatting and check if it's a valid phone number length
+            digits_only = ''.join(filter(str.isdigit, text))
+            return 10 <= len(digits_only) <= 15
+        
+        elif pii_type == "drivers_license":
+            # Skip common false positives
+            false_positives = {'test', 'example', 'sample', 'dummy'}
+            return text_lower not in false_positives
+        
+        elif pii_type == "bank_account":
+            # Skip obviously invalid account numbers
+            if text.isdigit() and (len(set(text)) == 1 or text in ['12345678', '87654321']):
+                return False
+            return True
+        
+        return True
+
+    @classmethod
     def find_pii_matches(
         cls, 
         text: str, 
@@ -207,10 +307,9 @@ class RegexRedactor:
                 for match in re.finditer(pattern, text):
                     match_text = match.group()
                     
-                    # Apply validation for names to reduce false positives
-                    if pii_type == "name":
-                        if not cls._is_likely_name(match_text) or cls._is_likely_organization(match_text):
-                            continue
+                    # Apply enhanced validation to reduce false positives
+                    if not cls._validate_pii_match(match_text, pii_type):
+                        continue
                     
                     matches.append(RedactionMatch(
                         start=match.start(),
@@ -296,3 +395,19 @@ class RegexRedactor:
     def is_type_supported(cls, pii_type: str) -> bool:
         """Check if a PII type is supported by regex patterns"""
         return pii_type in cls.PATTERNS
+
+    @classmethod  
+    def get_critical_pii_types(cls) -> List[str]:
+        """Get list of critical PII types that should always be checked"""
+        return [
+            "ssn", "credit_card", "bank_account", "passport", "drivers_license",
+            "medical_record", "tax_id", "biometric"
+        ]
+    
+    @classmethod
+    def get_common_pii_types(cls) -> List[str]:
+        """Get list of commonly found PII types"""
+        return [
+            "name", "email", "phone", "address", "date", "ssn", 
+            "credit_card", "drivers_license", "ip_address"
+        ]

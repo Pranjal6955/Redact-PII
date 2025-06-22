@@ -153,28 +153,36 @@ async def health_check():
 @app.post("/redact", response_model=RedactResponse)
 async def redact_pii(request: RedactRequest):
     """
-    Redact PII from input text
+    Redact PII from input text with automatic comprehensive detection
     
     - **text**: Input text containing PII to redact
-    - **redact_types**: Optional list of PII types to redact (defaults to all)
+    - **redact_types**: Optional list of PII types to redact (if empty, auto-detects all types)
     - **custom_tags**: Optional custom replacement tags for PII types
     """
     if not pii_service:
         raise HTTPException(status_code=503, detail="Service not initialized")
     
     try:
+        # If no redact_types specified, use comprehensive auto-detection
+        if not request.redact_types:
+            request.redact_types = pii_service.get_all_supported_pii_types()
+            logger.info("Auto-detecting all supported PII types")
+        
         logger.info(f"Processing redaction request for {len(request.text)} characters")
-        logger.debug(f"Redact types: {request.redact_types}")
+        logger.info(f"Detecting {len(request.redact_types)} PII types: {request.redact_types}")
         
         success, response, error = await pii_service.redact_text(
             request, 
-            use_hybrid=Config.HYBRID_MODE_ENABLED
+            use_hybrid=Config.HYBRID_MODE_ENABLED,
+            auto_detect_all=True
         )
         
         if not success:
             raise HTTPException(status_code=500, detail=error)
         
-        logger.info(f"Redaction completed. Summary: {response.summary}")
+        total_found = sum(response.summary.values())
+        logger.info(f"Redaction completed. Total PII found: {total_found}")
+        logger.info(f"Summary: {response.summary}")
         return response
         
     except HTTPException:
@@ -187,21 +195,23 @@ async def redact_pii(request: RedactRequest):
 @app.post("/redact-file", response_model=FileRedactResponse)
 async def redact_file(
     file: UploadFile = File(..., description="PDF or text file to redact"),
-    redact_types: Optional[str] = Form(default='["name", "email", "phone", "address", "credit_card", "date"]'),
+    redact_types: Optional[str] = Form(default='[]', description="JSON array of PII types (empty for auto-detect all)"),
     custom_tags: Optional[str] = Form(default=None),
     export_format: str = Form(default="both", description="Export format: pdf, txt, or both"),
     use_ocr: bool = Form(default=False, description="Use OCR for PDF text extraction if normal extraction fails"),
-    preserve_pdf_format: bool = Form(default=True, description="Preserve original PDF formatting when creating redacted PDF")
+    preserve_pdf_format: bool = Form(default=True, description="Preserve original PDF formatting when creating redacted PDF"),
+    comprehensive_scan: bool = Form(default=True, description="Perform comprehensive scan for all PII types")
 ):
     """
-    Upload and redact PII from a file (PDF or text)
+    Upload and redact PII from a file with comprehensive automatic detection
     
     - **file**: PDF or text file to process
-    - **redact_types**: JSON string of PII types to redact
+    - **redact_types**: JSON string of PII types to redact (empty array for auto-detect all)
     - **custom_tags**: JSON string of custom replacement tags
     - **export_format**: Output format (pdf, txt, or both)
     - **use_ocr**: Use OCR fallback for PDF text extraction
     - **preserve_pdf_format**: Preserve original PDF formatting when creating redacted PDF
+    - **comprehensive_scan**: Automatically detect all supported PII types
     """
     if not pii_service or not pdf_processor:
         raise HTTPException(status_code=503, detail="Service not initialized")
@@ -217,12 +227,17 @@ async def redact_file(
                 detail=f"File too large. Maximum size: {Config.MAX_FILE_SIZE} bytes"
             )
         
-        # Parse form data
+        # Parse form data with enhanced defaults
         try:
-            redact_types_list = json.loads(redact_types)
+            redact_types_list = json.loads(redact_types) if redact_types and redact_types != '[]' else []
             custom_tags_dict = json.loads(custom_tags) if custom_tags else None
         except json.JSONDecodeError as e:
             raise HTTPException(status_code=400, detail=f"Invalid JSON in form data: {str(e)}")
+        
+        # If comprehensive_scan is enabled or no types specified, use all supported types
+        if comprehensive_scan or not redact_types_list:
+            redact_types_list = pii_service.get_all_supported_pii_types()
+            logger.info(f"Comprehensive scan enabled - detecting {len(redact_types_list)} PII types")
         
         # Validate export format
         if export_format not in ["pdf", "txt", "both"]:
@@ -273,17 +288,18 @@ async def redact_file(
                 extracted_text = file_content.decode('utf-8')
                 logger.info(f"Processing text file: {len(extracted_text)} characters")
             
-            # Create redaction request
+            # Create redaction request with comprehensive PII detection
             redact_request = RedactRequest(
                 text=extracted_text,
                 redact_types=redact_types_list,
                 custom_tags=custom_tags_dict
             )
             
-            # Perform redaction
+            # Perform redaction with comprehensive detection
             success, response, error = await pii_service.redact_text(
                 redact_request,
-                use_hybrid=Config.HYBRID_MODE_ENABLED
+                use_hybrid=Config.HYBRID_MODE_ENABLED,
+                auto_detect_all=True
             )
             
             if not success:
@@ -407,11 +423,30 @@ async def download_file(filename: str):
 
 @app.get("/supported-types")
 async def get_supported_types():
-    """Get information about supported PII types"""
+    """Get comprehensive information about supported PII types"""
     if not pii_service:
         raise HTTPException(status_code=503, detail="Service not initialized")
     
-    return pii_service.get_supported_types()
+    supported_info = pii_service.get_supported_types()
+    
+    # Add additional metadata
+    supported_info.update({
+        "description": "Comprehensive PII detection supporting 20+ types",
+        "auto_detection": "Automatically detects all supported types when none specified",
+        "hybrid_mode": "Uses both regex patterns and LLM for maximum accuracy",
+        "categories": {
+            "identity": ["name", "ssn", "drivers_license", "passport"],
+            "financial": ["credit_card", "bank_account", "tax_id", "credit_score", "insurance_policy"],
+            "contact": ["email", "phone", "address", "personal_url"],
+            "medical": ["medical_record", "biometric"],
+            "employment": ["employee_id"],
+            "technical": ["ip_address", "mac_address", "guid"],
+            "vehicle": ["license_plate", "vin"],
+            "temporal": ["date"]
+        }
+    })
+    
+    return supported_info
 
 
 @app.get("/supported-formats")

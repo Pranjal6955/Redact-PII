@@ -31,8 +31,24 @@ export default function ResultsDisplay({ original, redacted, summary, redactType
     email: 'Email Addresses',
     phone: 'Phone Numbers',
     address: 'Physical Addresses',
+    ssn: 'Social Security Numbers',
     credit_card: 'Credit Card Numbers',
-    date: 'Dates of Birth',
+    date: 'Dates',
+    drivers_license: 'Driver\'s Licenses',
+    passport: 'Passport Numbers',
+    bank_account: 'Bank Accounts',
+    ip_address: 'IP Addresses',
+    medical_record: 'Medical Records',
+    employee_id: 'Employee IDs',
+    license_plate: 'License Plates',
+    vin: 'Vehicle IDs (VIN)',
+    insurance_policy: 'Insurance Policies',
+    tax_id: 'Tax IDs / EINs',
+    credit_score: 'Credit Scores',
+    biometric: 'Biometric IDs',
+    personal_url: 'Personal URLs',
+    mac_address: 'MAC Addresses',
+    guid: 'GUIDs/UUIDs'
   };
 
   const getEntityColor = (type: string) => {
@@ -43,6 +59,12 @@ export default function ResultsDisplay({ original, redacted, summary, redactType
       address: 'bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300',
       credit_card: 'bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300',
       date: 'bg-pink-100 dark:bg-pink-900/20 text-pink-800 dark:text-pink-300',
+      ssn: 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-300',
+      drivers_license: 'bg-indigo-100 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-300',
+      passport: 'bg-cyan-100 dark:bg-cyan-900/20 text-cyan-800 dark:text-cyan-300',
+      bank_account: 'bg-amber-100 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300',
+      ip_address: 'bg-lime-100 dark:bg-lime-900/20 text-lime-800 dark:text-lime-300',
+      // For other types, use the default gray
     };
     return colors[type] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300';
   };
