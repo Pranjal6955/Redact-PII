@@ -7,7 +7,7 @@ This project is a full-stack application for redacting Personally Identifiable I
 1.  **Start the backend:**
     ```bash
     cd Backend
-    bash setup.sh
+    bash setup.sh start
     source venv/bin/activate
     python run.py
     ```
