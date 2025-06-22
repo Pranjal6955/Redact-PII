@@ -1,0 +1,15 @@
+FROM mistral
+
+# Add your training data
+TEMPLATE """
+{{ if .System }}System: {{ .System }}{{ end }}
+{{ if .Prompt }}User: {{ .Prompt }}{{ end }}
+{{ if .Response }}Assistant: {{ .Response }}{{ end }}
+"""
+
+# Training parameters
+PARAMETER temperature 0.1
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+PARAMETER repeat_penalty 1.1
+PARAMETER num_ctx 4096 
