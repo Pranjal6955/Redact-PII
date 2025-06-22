@@ -13,6 +13,18 @@ class RedactionMatch:
     text: str
     pii_type: str
     replacement: str
+    confidence: float = 1.0  # Add confidence score to each match
+    
+    def to_dict(self):
+        """Convert match to dictionary"""
+        return {
+            'start': self.start,
+            'end': self.end,
+            'text': self.text,
+            'pii_type': self.pii_type,
+            'replacement': self.replacement,
+            'confidence': self.confidence
+        }
 
 
 class RegexRedactor:

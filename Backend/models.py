@@ -19,7 +19,8 @@ class RedactRequest(BaseModel):
     def validate_redact_types(cls, v):
         valid_types = {
             "name", "email", "phone", "address", 
-            "credit_card", "date"
+            "credit_card", "date",
+            "bank_account", "biometric", "credit_score", "drivers_license", "employee_id", "guid", "insurance_policy", "ip_address", "license_plate", "mac_address", "medical_record", "passport", "personal_url", "ssn", "tax_id", "vin"
         }
         if not all(pii_type in valid_types for pii_type in v):
             invalid_types = [pii_type for pii_type in v if pii_type not in valid_types]
@@ -47,7 +48,7 @@ class RedactResponse(BaseModel):
 class FileRedactRequest(BaseModel):
     """Request model for file-based PII redaction"""
     redact_types: Optional[List[str]] = Field(
-        default=["name", "email", "phone", "address", "credit_card", "date"],
+        default=["name", "email", "phone", "address", "credit_card", "date", "bank_account", "biometric", "credit_score", "drivers_license", "employee_id", "guid", "insurance_policy", "ip_address", "license_plate", "mac_address", "medical_record", "passport", "personal_url", "ssn", "tax_id", "vin"],
         description="Types of PII to redact"
     )
     custom_tags: Optional[Dict[str, str]] = Field(
@@ -63,7 +64,8 @@ class FileRedactRequest(BaseModel):
     def validate_redact_types(cls, v):
         valid_types = {
             "name", "email", "phone", "address", 
-            "credit_card", "date"
+            "credit_card", "date",
+            "bank_account", "biometric", "credit_score", "drivers_license", "employee_id", "guid", "insurance_policy", "ip_address", "license_plate", "mac_address", "medical_record", "passport", "personal_url", "ssn", "tax_id", "vin"
         }
         if not all(pii_type in valid_types for pii_type in v):
             invalid_types = [pii_type for pii_type in v if pii_type not in valid_types]

@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 from typing import Optional, List
 import json
 from pathlib import Path
+import traceback
 
 from config import Config
 from models import (
@@ -18,6 +19,7 @@ from models import (
 from ollama_client import OllamaClient
 from pii_service import PIIService
 from pdf_processor import PDFProcessor
+from debug_logger import DebugLogger
 
 # Configure logging
 logging.basicConfig(
@@ -36,11 +38,13 @@ def create_directories():
     """Create upload and output directories if they don't exist"""
     upload_dir = Path(Config.UPLOAD_DIR)
     output_dir = Path(Config.OUTPUT_DIR)
+    log_dir = Path("logs")
     
     upload_dir.mkdir(exist_ok=True)
     output_dir.mkdir(exist_ok=True)
+    log_dir.mkdir(exist_ok=True)
     
-    logger.info(f"Created/verified directories: {upload_dir}, {output_dir}")
+    logger.info(f"Created/verified directories: {upload_dir}, {output_dir}, {log_dir}")
 
 # Create directories
 create_directories()
@@ -106,13 +110,33 @@ app.mount("/downloads", StaticFiles(directory=Config.OUTPUT_DIR), name="download
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    """Global exception handler"""
-    logger.error(f"Unhandled exception: {str(exc)}", exc_info=True)
+    """Global exception handler with enhanced debugging"""
+    error_msg = str(exc)
+    stack_trace = traceback.format_exc()
+    
+    # Log detailed error information
+    logger.error(f"Unhandled exception: {error_msg}")
+    logger.error(f"Stack trace: {stack_trace}")
+    
+    # Log additional request information
+    try:
+        body = await request.body()
+        body_str = body.decode('utf-8') if len(body) < 1000 else f"{body[:1000].decode('utf-8')}... (truncated)"
+        logger.error(f"Request URL: {request.url}")
+        logger.error(f"Request method: {request.method}")
+        logger.error(f"Request headers: {dict(request.headers)}")
+        logger.error(f"Request body: {body_str}")
+    except Exception as e:
+        logger.error(f"Error logging request details: {str(e)}")
+    
+    # Save detailed error info to log file
+    DebugLogger.log_error(exc, f"Request to {request.url.path}")
+    
     return JSONResponse(
         status_code=500,
         content=ErrorResponse(
             error="Internal server error",
-            detail="An unexpected error occurred"
+            detail=f"An unexpected error occurred: {error_msg}"
         ).dict()
     )
 
@@ -216,10 +240,28 @@ async def redact_file(
     if not pii_service or not pdf_processor:
         raise HTTPException(status_code=503, detail="Service not initialized")
     
+    # Log file upload details for debugging
+    DebugLogger.log_file_upload(
+        filename=file.filename or "unknown",
+        size=file.size or 0,
+        content_type=file.content_type or "unknown"
+    )
+    
+    saved_path = None
+    
     try:
         # Validate file
         if not file.filename:
             raise HTTPException(status_code=400, detail="No file provided")
+        
+        # Log the form parameters
+        DebugLogger.log_process_info("Form parameters", {
+            "redact_types": redact_types,
+            "export_format": export_format,
+            "use_ocr": use_ocr,
+            "preserve_pdf_format": preserve_pdf_format,
+            "comprehensive_scan": comprehensive_scan
+        })
         
         if file.size and file.size > Config.MAX_FILE_SIZE:
             raise HTTPException(
@@ -232,6 +274,7 @@ async def redact_file(
             redact_types_list = json.loads(redact_types) if redact_types and redact_types != '[]' else []
             custom_tags_dict = json.loads(custom_tags) if custom_tags else None
         except json.JSONDecodeError as e:
+            DebugLogger.log_error(e, "JSON parsing")
             raise HTTPException(status_code=400, detail=f"Invalid JSON in form data: {str(e)}")
         
         # If comprehensive_scan is enabled or no types specified, use all supported types
@@ -248,6 +291,7 @@ async def redact_file(
         
         # Save uploaded file
         saved_path = await pdf_processor.save_uploaded_file(file_content, file.filename)
+        DebugLogger.log_process_info(f"Saved uploaded file to {saved_path}")
         
         try:
             # Extract text from file
@@ -255,28 +299,35 @@ async def redact_file(
                 # Validate PDF
                 is_valid, error_msg = pdf_processor.validate_pdf(saved_path)
                 if not is_valid:
+                    DebugLogger.log_error(Exception(error_msg), "PDF validation")
                     raise HTTPException(status_code=400, detail=f"Invalid PDF: {error_msg}")
                 
                 # Get PDF info for logging
                 pdf_info = pdf_processor.get_pdf_info(saved_path)
                 logger.info(f"Processing PDF: {pdf_info.get('page_count', 'unknown')} pages, {pdf_info.get('file_size', 0)} bytes")
+                DebugLogger.log_process_info("PDF info", pdf_info)
                 
                 # Extract text from PDF with improved extraction
                 if use_ocr:
                     # User explicitly requested OCR, use OCR fallback method
                     success, extracted_text, error = pdf_processor.extract_text_with_ocr_fallback(saved_path)
+                    DebugLogger.log_process_info(f"OCR extraction: {success}")
                 else:
                     # Try normal extraction first, then automatically fallback to OCR if it fails
                     success, extracted_text, error = pdf_processor.extract_text_from_pdf(saved_path)
+                    DebugLogger.log_process_info(f"Normal extraction: {success}")
                     
                     # If normal extraction failed, automatically try OCR as fallback
                     if not success:
                         logger.info("Normal text extraction failed, attempting OCR fallback...")
+                        DebugLogger.log_process_info("Attempting OCR fallback")
                         success, extracted_text, error = pdf_processor.extract_text_with_ocr_fallback(saved_path)
                         if success:
                             logger.info("OCR fallback successful")
+                            DebugLogger.log_process_info("OCR fallback successful")
                         else:
                             logger.error(f"OCR fallback also failed: {error}")
+                            DebugLogger.log_error(Exception(error), "OCR fallback")
                 
                 if not success:
                     raise HTTPException(status_code=400, detail=f"Failed to extract text: {error}")
@@ -285,8 +336,21 @@ async def redact_file(
                 
             else:
                 # Assume text file
-                extracted_text = file_content.decode('utf-8')
-                logger.info(f"Processing text file: {len(extracted_text)} characters")
+                try:
+                    extracted_text = file_content.decode('utf-8')
+                    logger.info(f"Processing text file: {len(extracted_text)} characters")
+                except UnicodeDecodeError as e:
+                    DebugLogger.log_error(e, "Text file decoding")
+                    # Try with different encodings
+                    for encoding in ['latin-1', 'cp1252', 'iso-8859-1']:
+                        try:
+                            extracted_text = file_content.decode(encoding)
+                            logger.info(f"Successfully decoded text file using {encoding} encoding")
+                            break
+                        except UnicodeDecodeError:
+                            continue
+                    else:
+                        raise HTTPException(status_code=400, detail="Unable to decode text file. File may be corrupted or binary.")
             
             # Create redaction request with comprehensive PII detection
             redact_request = RedactRequest(
@@ -303,6 +367,7 @@ async def redact_file(
             )
             
             if not success:
+                DebugLogger.log_error(Exception(error), "PII redaction")
                 raise HTTPException(status_code=500, detail=error)
             
             # Generate output files
@@ -319,6 +384,9 @@ async def redact_file(
                 if success:
                     files_generated.append(txt_filename)
                     file_sizes[txt_filename] = pdf_processor.get_file_size(txt_path)
+                    DebugLogger.log_process_info(f"Generated TXT file: {txt_filename}")
+                else:
+                    DebugLogger.log_error(Exception(error), "TXT file creation")
             
             if export_format in ["pdf", "both"]:
                 pdf_filename = f"{base_filename}_redacted_{timestamp}.pdf"
@@ -327,6 +395,7 @@ async def redact_file(
                 if file.filename.lower().endswith('.pdf') and preserve_pdf_format:
                     # For PDF input, try to preserve original formatting
                     logger.info("Using format-preserving PDF generation method")
+                    DebugLogger.log_process_info("Using format-preserving PDF generation")
                     success, pdf_path, error = pdf_processor.create_redacted_pdf_alternative(
                         saved_path, response.redacted, pdf_filename
                     )
@@ -334,13 +403,16 @@ async def redact_file(
                     # If format-preserving method fails, fallback to standard method
                     if not success:
                         logger.warning(f"Format-preserving method failed: {error}")
+                        DebugLogger.log_error(Exception(error), "Format-preserving PDF generation")
                         logger.info("Falling back to standard PDF generation")
+                        DebugLogger.log_process_info("Falling back to standard PDF generation")
                         success, pdf_path, error = pdf_processor.create_pdf_from_text(
                             response.redacted, pdf_filename
                         )
                 else:
                     # For text files or when format preservation is not requested
                     logger.info("Using standard PDF generation method")
+                    DebugLogger.log_process_info("Using standard PDF generation")
                     success, pdf_path, error = pdf_processor.create_pdf_from_text(
                         response.redacted, pdf_filename
                     )
@@ -349,16 +421,19 @@ async def redact_file(
                     files_generated.append(pdf_filename)
                     file_sizes[pdf_filename] = pdf_processor.get_file_size(pdf_path)
                     logger.info(f"Successfully generated PDF: {pdf_filename}")
+                    DebugLogger.log_process_info(f"Generated PDF file: {pdf_filename}")
                 else:
                     logger.error(f"Failed to generate PDF: {error}")
+                    DebugLogger.log_error(Exception(error), "PDF generation")
                     # Don't raise exception, just log the error and continue
             
             # Clean up uploaded file
             pdf_processor.cleanup_file(saved_path)
+            saved_path = None
             
             logger.info(f"File processing completed. Generated {len(files_generated)} files")
             
-            return FileRedactResponse(
+            response_data = FileRedactResponse(
                 original_text=response.original,
                 redacted_text=response.redacted,
                 summary=response.summary,
@@ -367,20 +442,40 @@ async def redact_file(
                 file_sizes=file_sizes
             )
             
+            # Log successful response
+            DebugLogger.log_process_info("File processing completed successfully", {
+                "files_generated": files_generated,
+                "summary": response.summary
+            })
+            
+            return response_data
+            
         except HTTPException:
             # Clean up on error
-            pdf_processor.cleanup_file(saved_path)
+            if saved_path:
+                pdf_processor.cleanup_file(saved_path)
+                saved_path = None
             raise
         except Exception as e:
             # Clean up on error
-            pdf_processor.cleanup_file(saved_path)
+            if saved_path:
+                pdf_processor.cleanup_file(saved_path)
+                saved_path = None
             logger.error(f"Error processing file: {str(e)}")
+            DebugLogger.log_error(e, "File processing")
             raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
             
     except HTTPException:
+        # Clean up on error
+        if saved_path:
+            pdf_processor.cleanup_file(saved_path)
         raise
     except Exception as e:
+        # Clean up on error
+        if saved_path:
+            pdf_processor.cleanup_file(saved_path)
         logger.error(f"Error processing file upload: {str(e)}")
+        DebugLogger.log_error(e, "File upload processing")
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 

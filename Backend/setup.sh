@@ -10,12 +10,13 @@ cd "$SCRIPT_DIR"
 
 # --- HELP FUNCTION ---
 show_help() {
-    echo "Usage: $0 {install|start|fine-tune|all}"
+    echo "Usage: $0 {install|start|fine-tune|test|all}"
     echo ""
     echo "Commands:"
     echo "  install      - Install system and Python dependencies."
     echo "  start        - Start the application (using Gunicorn for production or Uvicorn for development)."
     echo "  fine-tune    - Run the fine-tuning process for the Ollama model."
+    echo "  test         - Run the PII detection test script."
     echo "  all          - Run install, then start the application."
     echo ""
     echo "This script consolidates setup, start, and fine-tuning operations."
@@ -32,7 +33,10 @@ install_system_dependencies() {
         apt-get install -y --no-install-recommends \
             tesseract-ocr \
             libmagic1 \
-            libgl1
+            libgl1 \
+            python3-dev \
+            python3-pip \
+            python3-venv
         echo "✅ System dependencies installed."
     else
         echo "⚠️  apt-get not found. Skipping system dependency installation. This is expected on non-Debian systems (e.g., macOS, Windows)."
@@ -45,6 +49,11 @@ setup_python_env() {
     echo "====================================================="
 
     # Check if Python 3.8+ is installed
+    if ! command -v python3 &> /dev/null; then
+        echo "❌ Python 3 not found. Please install Python 3.8 or higher."
+        exit 1
+    fi
+    
     python_version=$(python3 --version 2>&1 | grep -oP '\d+\.\d+' | head -1)
     required_version="3.8"
 
@@ -67,6 +76,12 @@ setup_python_env() {
     if [ ! -d "venv" ]; then
         echo "📦 Creating virtual environment..."
         python3 -m venv venv
+        if [ $? -ne 0 ]; then
+            echo "❌ Failed to create virtual environment. Check Python installation."
+            echo "Try installing python3-venv package if on Debian/Ubuntu:"
+            echo "sudo apt-get install python3-venv"
+            exit 1
+        fi
         echo "✅ Virtual environment created"
     else
         echo "✅ Virtual environment already exists"
@@ -75,14 +90,32 @@ setup_python_env() {
     # Activate virtual environment
     echo "🔧 Activating virtual environment..."
     source venv/bin/activate
+    if [ $? -ne 0 ]; then
+        echo "❌ Failed to activate virtual environment."
+        exit 1
+    fi
 
     # Upgrade pip
     echo "⬆️  Upgrading pip..."
     pip install --upgrade pip
+    if [ $? -ne 0 ]; then
+        echo "⚠️  Warning: Failed to upgrade pip, but continuing..."
+    fi
 
     # Install dependencies
     echo "📚 Installing dependencies from requirements.txt..."
+    if [ ! -f "$SCRIPT_DIR/requirements.txt" ]; then
+        echo "❌ requirements.txt not found at $SCRIPT_DIR"
+        exit 1
+    fi
+    
     pip install -r "$SCRIPT_DIR/requirements.txt"
+    if [ $? -ne 0 ]; then
+        echo "❌ Failed to install dependencies."
+        echo "Try installing python3-dev if on Debian/Ubuntu:"
+        echo "sudo apt-get install python3-dev"
+        exit 1
+    fi
     echo "✅ Python dependencies installed."
     
     # Check if config.env exists
@@ -100,6 +133,11 @@ DEBUG=True
 
 # CORS Configuration
 ALLOWED_ORIGINS=["http://localhost:3000", "http://127.0.0.1:3000"]
+
+# PII Detection Configuration
+HYBRID_MODE_ENABLED=True
+LOG_LEVEL=INFO
+MAX_FILE_SIZE=10485760
 EOF
         echo "✅ config.env created"
     else
@@ -141,10 +179,37 @@ run_start() {
     if [ -d "venv" ]; then
         echo "🔧 Activating virtual environment..."
         source venv/bin/activate
+        if [ $? -ne 0 ]; then
+            echo "❌ Failed to activate virtual environment."
+            exit 1
+        fi
     else
         echo "❌ Virtual environment not found. Please run './setup.sh install' first."
         exit 1
     fi
+    
+    # Check if run.py exists
+    if [ ! -f "run.py" ]; then
+        echo "❌ run.py not found. Make sure you are in the correct directory."
+        exit 1
+    fi
+    
+    # Check if config.py exists (required by run.py)
+    if [ ! -f "config.py" ]; then
+        echo "❌ config.py not found. Make sure all required files are present."
+        exit 1
+    fi
+    
+    # Check if all required Python modules are present
+    echo "🔍 Checking for required modules..."
+    
+    required_files=("regex_redactor.py" "pii_service.py" "ollama_client.py" "main.py")
+    for file in "${required_files[@]}"; do
+        if [ ! -f "$file" ]; then
+            echo "❌ Required file $file not found!"
+            exit 1
+        fi
+    done
     
     # Check if we're in a production environment (like Render)
     if [ -n "$RENDER" ]; then
@@ -163,6 +228,41 @@ run_start() {
 }
 
 
+# --- TEST FUNCTION ---
+run_test() {
+    echo "🧪 Running PII detection test script..."
+    
+    # Activate virtual environment
+    if [ -d "venv" ]; then
+        echo "🔧 Activating virtual environment..."
+        source venv/bin/activate
+        if [ $? -ne 0 ]; then
+            echo "❌ Failed to activate virtual environment."
+            exit 1
+        fi
+    else
+        echo "❌ Virtual environment not found. Please run './setup.sh install' first."
+        exit 1
+    fi
+    
+    # Check if test script exists
+    if [ ! -f "test_pii_detection.py" ]; then
+        echo "❌ test_pii_detection.py not found. Create it first."
+        exit 1
+    fi
+    
+    # Run the test script
+    python test_pii_detection.py
+    
+    if [ $? -eq 0 ]; then
+        echo "✅ Test completed successfully."
+    else
+        echo "❌ Test failed."
+        exit 1
+    fi
+}
+
+
 # --- FINE-TUNING FUNCTION ---
 run_fine_tune() {
     set -e  # Exit on any error
@@ -176,22 +276,40 @@ run_fine_tune() {
     fi
 
     echo "✅ Ollama is installed: $(ollama --version)"
+    
+    # Check if Ollama is running
+    if ! curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
+        echo "❌ Ollama is not running. Please start Ollama with: ollama serve"
+        exit 1
+    fi
 
     # Check if required files exist
-    if [ ! -f "pii_training_data.json" ]; then
-        echo "❌ Training data file 'pii_training_data.json' not found"
-        echo "   Please run the dataset generator first: python3 pii_dataset_generator.py"
-        exit 1
-    fi
-
     if [ ! -f "Modelfile" ]; then
-        echo "❌ Modelfile not found"
-        exit 1
+        echo "⚙️ Creating Modelfile for PII detection..."
+        cat > Modelfile << EOF
+FROM llama3
+
+# System prompt optimized for PII detection
+SYSTEM """
+You are an expert PII (Personally Identifiable Information) detection and redaction system. 
+Your primary task is to identify and redact all instances of PII in text with 100% accuracy.
+You must be thorough and meticulous, catching even subtle or unusual formats of PII.
+You should prioritize catching all potential PII (high recall) while maintaining precision.
+When unsure, err on the side of redaction to protect privacy.
+"""
+
+# Set parameters for optimal PII detection
+PARAMETER temperature 0.1
+PARAMETER top_p 0.9
+PARAMETER top_k 30
+PARAMETER repeat_penalty 1.2
+PARAMETER seed 42
+EOF
+        echo "✅ Modelfile created"
+    else
+        echo "✅ Modelfile exists"
     fi
 
-    echo "✅ All required files found"
-
-    # Create the fine-tuned model
     echo ""
     echo "🚀 Creating fine-tuned model 'pii-detector'..."
     ollama create pii-detector -f Modelfile
@@ -221,6 +339,12 @@ run_fine_tune() {
     echo "📋 Next Steps:"
     echo "1. Update your config.env to use the new model: MODEL_NAME=pii-detector"
     echo "2. Restart your application to use the fine-tuned model"
+    
+    # Ask if user wants to update config.env
+    read -p "Would you like to update config.env to use the new model? (y/n) " answer
+    if [[ $answer == [Yy]* ]]; then
+        python update_config.py
+    fi
 }
 
 
@@ -241,6 +365,9 @@ main() {
         fine-tune)
             run_fine_tune
             ;;
+        test)
+            run_test
+            ;;
         all)
             run_install
             run_start
@@ -256,4 +383,4 @@ main() {
 main "$@"
 
 # Change back to the original directory (if not starting a server)
-cd - > /dev/null 
+cd - > /dev/null

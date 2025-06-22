@@ -33,10 +33,10 @@ class PromptGenerator:
         "guid": "[REDACTED_GUID]"
     }
     
-    # PII type descriptions for the prompt
+    # Enhanced PII type descriptions for the prompt
     PII_DESCRIPTIONS = {
-        "name": "personal names (first names, last names, full names, nicknames, aliases, maiden names). Look for people's names in contexts like 'Name:', 'Patient:', 'Customer:', 'Employee:', etc. Do NOT redact company names, organization names, or brand names",
-        "email": "email addresses in any format (user@domain.com, user.name@domain.co.uk, user+tag@domain.org, etc.)",
+        "name": "personal names (first names, last names, full names, nicknames, aliases, maiden names, middle names, middle initials). Look for people's names in contexts like 'Name:', 'Patient:', 'Customer:', 'Employee:', 'Client:', 'Dr.', 'Mr.', 'Mrs.', 'Ms.', etc. Do NOT redact company names, organization names, or brand names",
+        "email": "email addresses in any format (user@domain.com, user.name@domain.co.uk, user+tag@domain.org, etc.). Look for the @ symbol followed by a domain name. Include partial emails if domain is visible",
         "phone": "phone numbers in any format (555-123-4567, (555) 123-4567, +1-555-123-4567, 555.123.4567, 5551234567, international formats)",
         "address": "complete physical addresses including street numbers, street names, cities, states/provinces, zip/postal codes, and countries. Look for full address blocks",
         "credit_card": "credit card numbers, debit card numbers in any format (4111-1111-1111-1111, 4111 1111 1111 1111, 4111111111111111, etc.)",
