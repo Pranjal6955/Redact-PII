@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Shield, Activity, AlertCircle, CheckCircle, Moon, Sun } from 'lucide-react';
 import { apiService } from '../services/api';
 import type { HealthResponse } from '../types/api';
