@@ -22,20 +22,14 @@ class RegexRedactor:
     PATTERNS = {
         "email": r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
         "phone": r'\b(?:\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})\b',
-        "ssn": r'\b\d{3}-\d{2}-\d{4}\b',
-        "credit_card": r'\b\d{4}[-.\s]?\d{4}[-.\s]?\d{4}[-.\s]?\d{4}\b',
-        "ip_address": r'\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b',
-        "url": r'\bhttps?://[^\s<>"{}|\\^`\[\]]+\b'
+        "credit_card": r'\b\d{4}[-.\s]?\d{4}[-.\s]?\d{4}[-.\s]?\d{4}\b'
     }
     
     # Default replacement tags
     DEFAULT_TAGS = {
         "email": "[REDACTED_EMAIL]",
         "phone": "[REDACTED_PHONE]",
-        "ssn": "[REDACTED_SSN]",
-        "credit_card": "[REDACTED_CREDIT_CARD]",
-        "ip_address": "[REDACTED_IP]",
-        "url": "[REDACTED_URL]"
+        "credit_card": "[REDACTED_CREDIT_CARD]"
     }
 
     @classmethod

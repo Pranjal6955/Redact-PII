@@ -7,7 +7,7 @@ class RedactRequest(BaseModel):
     """Request model for PII redaction"""
     text: str = Field(..., min_length=1, description="Input text to redact PII from")
     redact_types: Optional[List[str]] = Field(
-        default=["name", "email", "phone", "address", "ssn", "credit_card"],
+        default=["name", "email", "phone", "address", "credit_card", "date"],
         description="Types of PII to redact"
     )
     custom_tags: Optional[Dict[str, str]] = Field(
@@ -18,8 +18,8 @@ class RedactRequest(BaseModel):
     @validator('redact_types')
     def validate_redact_types(cls, v):
         valid_types = {
-            "name", "email", "phone", "address", "ssn", 
-            "credit_card", "ip_address", "date", "url"
+            "name", "email", "phone", "address", 
+            "credit_card", "date"
         }
         if not all(pii_type in valid_types for pii_type in v):
             invalid_types = [pii_type for pii_type in v if pii_type not in valid_types]
@@ -47,7 +47,7 @@ class RedactResponse(BaseModel):
 class FileRedactRequest(BaseModel):
     """Request model for file-based PII redaction"""
     redact_types: Optional[List[str]] = Field(
-        default=["name", "email", "phone", "address", "ssn", "credit_card"],
+        default=["name", "email", "phone", "address", "credit_card", "date"],
         description="Types of PII to redact"
     )
     custom_tags: Optional[Dict[str, str]] = Field(
@@ -62,8 +62,8 @@ class FileRedactRequest(BaseModel):
     @validator('redact_types')
     def validate_redact_types(cls, v):
         valid_types = {
-            "name", "email", "phone", "address", "ssn", 
-            "credit_card", "ip_address", "date", "url"
+            "name", "email", "phone", "address", 
+            "credit_card", "date"
         }
         if not all(pii_type in valid_types for pii_type in v):
             invalid_types = [pii_type for pii_type in v if pii_type not in valid_types]

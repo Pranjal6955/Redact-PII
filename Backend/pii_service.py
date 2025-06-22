@@ -185,8 +185,8 @@ class PIIService:
         return {
             "regex_supported": self.regex_redactor.get_supported_types(),
             "all_supported": [
-                "name", "email", "phone", "address", "ssn", 
-                "credit_card", "ip_address", "date", "url"
+                "name", "email", "phone", "address", 
+                "credit_card", "date"
             ]
         }
     

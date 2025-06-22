@@ -6,11 +6,8 @@ const PII_TYPES = [
   { id: 'email', label: 'Email Addresses', description: 'Email contact information' },
   { id: 'phone', label: 'Phone Numbers', description: 'Telephone and mobile numbers' },
   { id: 'address', label: 'Physical Addresses', description: 'Home and business addresses' },
-  { id: 'ssn', label: 'Social Security Numbers', description: 'SSN and national IDs' },
   { id: 'credit_card', label: 'Credit Card Numbers', description: 'Payment card information' },
-  { id: 'ip_address', label: 'IP Addresses', description: 'Network identifiers' },
-  { id: 'url', label: 'URLs', description: 'Web addresses and links' },
-  { id: 'date', label: 'Dates', description: 'Birth dates and sensitive dates' },
+  { id: 'date', label: 'Dates of Birth', description: 'Birth dates and sensitive dates' },
 ];
 
 interface PIITypeSelectorProps {

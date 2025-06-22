@@ -13,11 +13,8 @@ class PromptGenerator:
         "email": "[REDACTED_EMAIL]",
         "phone": "[REDACTED_PHONE]",
         "address": "[REDACTED_ADDRESS]",
-        "ssn": "[REDACTED_SSN]",
         "credit_card": "[REDACTED_CREDIT_CARD]",
-        "ip_address": "[REDACTED_IP]",
-        "date": "[REDACTED_DATE]",
-        "url": "[REDACTED_URL]"
+        "date": "[REDACTED_DATE]"
     }
     
     # PII type descriptions for the prompt
@@ -26,11 +23,8 @@ class PromptGenerator:
         "email": "email addresses",
         "phone": "phone numbers (including international formats)",
         "address": "physical addresses, street addresses, postal addresses",
-        "ssn": "social security numbers",
         "credit_card": "credit card numbers, debit card numbers",
-        "ip_address": "IP addresses (IPv4 and IPv6)",
-        "date": "dates of birth, personal dates",
-        "url": "personal URLs, social media profiles"
+        "date": "dates of birth, personal dates"
     }
 
     @classmethod
@@ -133,11 +127,8 @@ Please provide a JSON response with the count of each PII type found, in this ex
   "email": 0,
   "phone": 0,
   "address": 0,
-  "ssn": 0,
   "credit_card": 0,
-  "ip_address": 0,
-  "date": 0,
-  "url": 0
+  "date": 0
 }}
 
 Only include the PII types that were requested in the analysis. Return ONLY the JSON response, no additional text."""

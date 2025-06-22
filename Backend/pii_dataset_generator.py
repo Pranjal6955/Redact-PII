@@ -35,14 +35,8 @@ class PIIDatasetGenerator:
         zip_code = f"{random.randint(10000, 99999)}"
         return f"{street_num} {street_name}, {city}, {state} {zip_code}"
 
-    def generate_random_ssn(self) -> str:
-        return f"{random.randint(100, 999)}-{random.randint(10, 99)}-{random.randint(1000, 9999)}"
-
     def generate_random_credit_card(self) -> str:
         return f"{random.randint(1000, 9999)}-{random.randint(1000, 9999)}-{random.randint(1000, 9999)}-{random.randint(1000, 9999)}"
-
-    def generate_random_ip(self) -> str:
-        return f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}"
 
     def generate_random_date(self) -> str:
         year = random.randint(1950, 2000)
@@ -50,19 +44,13 @@ class PIIDatasetGenerator:
         day = random.randint(1, 28)
         return f"{month}/{day}/{year}"
 
-    def generate_random_url(self) -> str:
-        name = random.choice(self.first_names).lower()
-        domain = random.choice(["example.com", "test.org", "demo.net"])
-        return f"https://{name}.{domain}"
-
     def generate_sentence_with_pii(self, pii_types: List[str]) -> Tuple[str, str]:
         templates = [
             "My name is {name} and you can contact me at {email}.",
             "Please call {name} at {phone} for more information.",
-            "I live at {address} and my SSN is {ssn}.",
+            "I live at {address} and my credit card is {credit_card}.",
             "Contact {name} via email at {email} or phone at {phone}.",
-            "My credit card number is {credit_card} and my IP address is {ip_address}.",
-            "I was born on {date} and my website is {url}."
+            "I was born on {date} and my name is {name}."
         ]
         
         template = random.choice(templates)
@@ -89,36 +77,21 @@ class PIIDatasetGenerator:
             original_text = original_text.replace("{address}", address)
             redacted_text = redacted_text.replace("{address}", "[REDACTED_ADDRESS]")
         
-        if "ssn" in pii_types:
-            ssn = self.generate_random_ssn()
-            original_text = original_text.replace("{ssn}", ssn)
-            redacted_text = redacted_text.replace("{ssn}", "[REDACTED_SSN]")
-        
         if "credit_card" in pii_types:
             credit_card = self.generate_random_credit_card()
             original_text = original_text.replace("{credit_card}", credit_card)
             redacted_text = redacted_text.replace("{credit_card}", "[REDACTED_CREDIT_CARD]")
-        
-        if "ip_address" in pii_types:
-            ip_address = self.generate_random_ip()
-            original_text = original_text.replace("{ip_address}", ip_address)
-            redacted_text = redacted_text.replace("{ip_address}", "[REDACTED_IP]")
         
         if "date" in pii_types:
             date = self.generate_random_date()
             original_text = original_text.replace("{date}", date)
             redacted_text = redacted_text.replace("{date}", "[REDACTED_DATE]")
         
-        if "url" in pii_types:
-            url = self.generate_random_url()
-            original_text = original_text.replace("{url}", url)
-            redacted_text = redacted_text.replace("{url}", "[REDACTED_URL]")
-        
         return original_text, redacted_text
 
     def generate_dataset(self, num_samples: int = 1000) -> List[Dict]:
         dataset = []
-        all_pii_types = ["name", "email", "phone", "address", "ssn", "credit_card", "ip_address", "date", "url"]
+        all_pii_types = ["name", "email", "phone", "address", "credit_card", "date"]
         
         for i in range(num_samples):
             num_pii_types = random.randint(1, 4)
@@ -148,22 +121,16 @@ TYPES OF PII TO DETECT AND REDACT:
 - email: email addresses (any format: user@domain.com, user.name@domain.co.uk, etc.)
 - phone: phone numbers (any format: 555-123-4567, (555) 123-4567, +1-555-123-4567, 555.123.4567, 5551234567)
 - address: physical addresses (complete addresses including street, city, state/province, zip/postal code, country)
-- ssn: social security numbers (any format: 123-45-6789, 123456789, XXX-XX-XXXX, etc.)
 - credit_card: credit card numbers, debit card numbers (any format: 4111-1111-1111-1111, 4111 1111 1111 1111, 4111111111111111, etc.)
-- ip_address: IP addresses (IPv4: 192.168.1.1, IPv6: 2001:0db8:85a3:0000:0000:8a2e:0370:7334)
 - date: personal dates (birth dates, anniversary dates, personal milestones, not general dates or holidays)
-- url: personal URLs, social media profiles, personal websites (https://johnsblog.com, @username, etc.)
 
 REPLACEMENT MAPPING:
 - name → [REDACTED_NAME]
 - email → [REDACTED_EMAIL]
 - phone → [REDACTED_PHONE]
 - address → [REDACTED_ADDRESS]
-- ssn → [REDACTED_SSN]
 - credit_card → [REDACTED_CREDIT_CARD]
-- ip_address → [REDACTED_IP]
 - date → [REDACTED_DATE]
-- url → [REDACTED_URL]
 
 CRITICAL INSTRUCTIONS:
 1. CAREFULLY analyze the text and identify ALL instances of the specified PII types
@@ -174,14 +141,8 @@ CRITICAL INSTRUCTIONS:
 6. For emails: Redact any email address format (user@domain.com, user.name@domain.co.uk, user+tag@domain.org, etc.)
 7. For phones: Redact phone numbers in any format (555-123-4567, (555) 123-4567, +1-555-123-4567, 555.123.4567, 5551234567)
 8. For addresses: Redact complete addresses including street, city, state/province, zip/postal code, country
-9. For SSN: Redact social security numbers in any format (123-45-6789, 123456789, XXX-XX-XXXX, etc.)
-10. For credit cards: Redact credit/debit card numbers (4111-1111-1111-1111, 4111 1111 1111 1111, 4111111111111111, etc.)
-11. For IP addresses: Redact both IPv4 (192.168.1.1) and IPv6 addresses (2001:0db8:85a3:0000:0000:8a2e:0370:7334)
-12. For dates: Focus on personal dates like birth dates, anniversary dates, personal milestones, not general dates or holidays
-13. For URLs: Redact personal websites, social media profiles, personal URLs (https://johnsblog.com, @username, etc.)
-14. PAY ATTENTION to context - if a word could be a name in context, redact it
-15. Look for PII in ALL parts of the text - beginning, middle, and end
-16. Don't skip PII just because it's in a different format than the examples
+9. For credit cards: Redact credit/debit card numbers (4111-1111-1111-1111, 4111 1111 1111 1111, 4111111111111111, etc.)
+10. For dates: Focus on personal dates like birth dates, anniversary dates, personal milestones, not general dates or holidays
 
 IMPORTANT: Return ONLY the redacted text. Do not add any explanations, markdown formatting, or additional text.
 

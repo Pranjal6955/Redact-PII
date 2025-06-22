@@ -186,7 +186,7 @@ async def redact_pii(request: RedactRequest):
 @app.post("/redact-file", response_model=FileRedactResponse)
 async def redact_file(
     file: UploadFile = File(..., description="PDF or text file to redact"),
-    redact_types: Optional[str] = Form(default='["name", "email", "phone", "address", "ssn", "credit_card"]'),
+    redact_types: Optional[str] = Form(default='["name", "email", "phone", "address", "credit_card", "date"]'),
     custom_tags: Optional[str] = Form(default=None),
     export_format: str = Form(default="both", description="Export format: pdf, txt, or both"),
     use_ocr: bool = Form(default=False, description="Use OCR for PDF text extraction if normal extraction fails"),
