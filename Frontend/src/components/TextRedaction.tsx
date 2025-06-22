@@ -13,6 +13,7 @@ export default function TextRedaction() {
   const [results, setResults] = useState<RedactionResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   const handleRedact = async () => {
     if (!text.trim()) {
@@ -60,6 +61,34 @@ export default function TextRedaction() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!results) return;
+    
+    setDownloadingPdf(true);
+    try {
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:\-T]/g, '_');
+      const filename = `redacted_text_${timestamp}.pdf`;
+      
+      // Create PDF on server
+      const pdfInfo = await apiService.createPdfFromText(results.redacted, filename);
+      
+      // Download the created PDF
+      const blob = await apiService.downloadFile(pdfInfo.filename);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = pdfInfo.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to download PDF');
+    } finally {
+      setDownloadingPdf(false);
+    }
   };
 
   return (
@@ -157,7 +186,24 @@ export default function TextRedaction() {
                 className="inline-flex items-center px-3 py-1.5 text-sm bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-md hover:bg-blue-200 dark:hover:bg-blue-900/40 transition-colors"
               >
                 <Download className="w-4 h-4 mr-1" />
-                Download
+                TXT
+              </button>
+              <button
+                onClick={handleDownloadPdf}
+                disabled={downloadingPdf}
+                className="inline-flex items-center px-3 py-1.5 text-sm bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-md hover:bg-red-200 dark:hover:bg-red-900/40 transition-colors disabled:opacity-50"
+              >
+                {downloadingPdf ? (
+                  <>
+                    <Download className="w-4 h-4 mr-1 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 mr-1" />
+                    PDF
+                  </>
+                )}
               </button>
             </div>
           </div>

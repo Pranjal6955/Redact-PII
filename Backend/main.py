@@ -307,14 +307,24 @@ async def redact_file(
             if export_format in ["pdf", "both"]:
                 pdf_filename = f"{base_filename}_redacted_{timestamp}.pdf"
                 
-                # Choose PDF generation method based on user preference
+                # Choose PDF generation method based on user preference and file type
                 if file.filename.lower().endswith('.pdf') and preserve_pdf_format:
-                    # Use the alternative method that provides better text positioning
+                    # For PDF input, try to preserve original formatting
+                    logger.info("Using format-preserving PDF generation method")
                     success, pdf_path, error = pdf_processor.create_redacted_pdf_alternative(
                         saved_path, response.redacted, pdf_filename
                     )
+                    
+                    # If format-preserving method fails, fallback to standard method
+                    if not success:
+                        logger.warning(f"Format-preserving method failed: {error}")
+                        logger.info("Falling back to standard PDF generation")
+                        success, pdf_path, error = pdf_processor.create_pdf_from_text(
+                            response.redacted, pdf_filename
+                        )
                 else:
-                    # Use the original method that creates a new document
+                    # For text files or when format preservation is not requested
+                    logger.info("Using standard PDF generation method")
                     success, pdf_path, error = pdf_processor.create_pdf_from_text(
                         response.redacted, pdf_filename
                     )
@@ -322,6 +332,10 @@ async def redact_file(
                 if success:
                     files_generated.append(pdf_filename)
                     file_sizes[pdf_filename] = pdf_processor.get_file_size(pdf_path)
+                    logger.info(f"Successfully generated PDF: {pdf_filename}")
+                else:
+                    logger.error(f"Failed to generate PDF: {error}")
+                    # Don't raise exception, just log the error and continue
             
             # Clean up uploaded file
             pdf_processor.cleanup_file(saved_path)
@@ -460,6 +474,49 @@ async def analyze_pii(request: RedactRequest):
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 
+@app.post("/create-pdf")
+async def create_pdf_from_text(request: dict):
+    """
+    Create a PDF file from text content
+    
+    - **text**: Text content to convert to PDF
+    - **filename**: Optional filename for the PDF
+    """
+    if not pdf_processor:
+        raise HTTPException(status_code=503, detail="Service not initialized")
+    
+    try:
+        text = request.get('text', '')
+        filename = request.get('filename', f'document_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf')
+        
+        if not text.strip():
+            raise HTTPException(status_code=400, detail="No text content provided")
+        
+        logger.info(f"Creating PDF from text: {len(text)} characters")
+        
+        # Create PDF from text
+        success, pdf_path, error = pdf_processor.create_pdf_from_text(text, filename)
+        
+        if not success:
+            raise HTTPException(status_code=500, detail=f"Failed to create PDF: {error}")
+        
+        file_size = pdf_processor.get_file_size(pdf_path)
+        
+        logger.info(f"Successfully created PDF: {filename} ({file_size} bytes)")
+        
+        return {
+            "filename": filename,
+            "file_size": file_size,
+            "message": "PDF created successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating PDF from text: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
@@ -468,4 +525,4 @@ if __name__ == "__main__":
         port=Config.API_PORT,
         reload=Config.DEBUG,
         log_level=Config.LOG_LEVEL.lower()
-    ) 
+    )

@@ -261,6 +261,33 @@ class RegexRedactor:
         return redacted_text, summary
 
     @classmethod
+    def clean_overlapping_redactions(cls, text: str) -> str:
+        """
+        Clean up overlapping or duplicate redaction tags
+        
+        Args:
+            text: Text with potentially overlapping redaction tags
+            
+        Returns:
+            Cleaned text with non-overlapping redaction tags
+        """
+        # Pattern to match consecutive redaction tags
+        pattern = r'\[REDACTED_[A-Z_]+\](\s*\[REDACTED_[A-Z_]+\])+'
+        
+        def replace_consecutive(match):
+            # Replace consecutive tags with a single generic tag
+            return '[REDACTED]'
+        
+        # Replace consecutive redaction tags
+        cleaned_text = re.sub(pattern, replace_consecutive, text)
+        
+        # Remove extra spaces around redaction tags
+        cleaned_text = re.sub(r'\s+\[REDACTED', ' [REDACTED', cleaned_text)
+        cleaned_text = re.sub(r'\]\s+', '] ', cleaned_text)
+        
+        return cleaned_text
+
+    @classmethod
     def get_supported_types(cls) -> List[str]:
         """Get list of PII types supported by regex patterns"""
         return list(cls.PATTERNS.keys())
@@ -268,4 +295,4 @@ class RegexRedactor:
     @classmethod
     def is_type_supported(cls, pii_type: str) -> bool:
         """Check if a PII type is supported by regex patterns"""
-        return pii_type in cls.PATTERNS 
+        return pii_type in cls.PATTERNS

@@ -49,3 +49,9 @@ export interface FileFormat {
   mime_type: string;
   description: string;
 }
+
+export interface PdfCreationResponse {
+  filename: string;
+  file_size: number;
+  message: string;
+}

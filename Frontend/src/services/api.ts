@@ -93,4 +93,21 @@ export const apiService = {
     }
     return response.blob();
   },
+
+  async createPdfFromText(
+    text: string,
+    filename?: string
+  ): Promise<import('../types/api').PdfCreationResponse> {
+    const response = await fetch(`${API_BASE_URL}/create-pdf`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text,
+        filename: filename || `redacted_text_${Date.now()}.pdf`
+      }),
+    });
+    return handleResponse(response);
+  },
 };
