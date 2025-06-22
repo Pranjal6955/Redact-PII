@@ -38,7 +38,7 @@ export default function Header({ darkMode, onToggleDarkMode }: HeaderProps) {
   const getStatusText = () => {
     if (loading) return 'Checking...';
     if (!health) return 'Offline';
-    return health.status === 'healthy' ? 'Online' : 'Issues Detected';
+    return health.status === 'healthy' ? 'Connected' : 'Issues Detected';
   };
 
   return (

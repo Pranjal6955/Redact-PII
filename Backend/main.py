@@ -145,7 +145,8 @@ async def health_check():
     return HealthResponse(
         status=status_info["service_status"],
         ollama_status=status_info["ollama_status"],
-        model_name=status_info["model_name"]
+        model=status_info["model_name"],
+        timestamp=datetime.now().isoformat()
     )
 
 

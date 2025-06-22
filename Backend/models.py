@@ -107,7 +107,8 @@ class HealthResponse(BaseModel):
     """Health check response model"""
     status: str = Field(..., description="Service status")
     ollama_status: str = Field(..., description="Ollama connection status")
-    model_name: str = Field(..., description="Currently configured model")
+    model: str = Field(..., description="Currently configured model")
+    timestamp: str = Field(..., description="Health check timestamp")
 
 
 class FileInfo(BaseModel):

@@ -200,7 +200,7 @@ class PIIService:
         is_connected, status = await self.ollama_client.check_connection()
         
         return {
-            "service_status": "running",
+            "service_status": "healthy",
             "ollama_status": "connected" if is_connected else "disconnected",
             "ollama_message": status,
             "model_name": self.ollama_client.model_name,
