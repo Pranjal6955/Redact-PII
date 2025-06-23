@@ -1,6 +1,28 @@
 # RedactPII
 
-A full-stack application for redacting Personally Identifiable Information (PII) from text and documents using AI-powered detection with Ollama LLM.
+[![Frontend Live](https://img.shields.io/badge/Frontend-Live-green)](https://frontend-one-rho-99.vercel.app/)  
+[![Backend Live](https://img.shields.io/badge/Backend-Live-blue)](https://backend-cd5r.onrender.com)
+
+---
+
+> **Live Demo:**
+> - Frontend: [https://frontend-one-rho-99.vercel.app/](https://frontend-one-rho-99.vercel.app/)
+> - Backend: [https://backend-cd5r.onrender.com](https://backend-cd5r.onrender.com)
+
+---
+
+## 🖼️ Screenshots
+
+> **Tip:** Place your screenshot images in a `screenshots/` or `public/` directory and update the image paths below as needed.
+
+### Frontend Dashboard
+![Frontend Dashboard](screenshots/frontend_dashboard.png)
+
+### Backend Dashboard
+![Backend Dashboard](screenshots/backend_dashboard.png)
+
+### Dark Mode
+![Dark Mode](screenshots/darkmode.png)
 
 ## 🚀 Features
 
@@ -259,21 +281,48 @@ npm run preview # Preview production build
 
 ```
 Backend/
-├── main.py              # FastAPI application
-├── pii_service.py       # PII detection service
-├── pdf_processor.py     # PDF processing utilities
-├── ollama_client.py     # Ollama integration
-├── models.py            # Data models
-└── config.py            # Configuration management
+├── main.py                # FastAPI application
+├── pii_service.py         # PII detection service
+├── pdf_processor.py       # PDF processing utilities
+├── ollama_client.py       # Ollama integration
+├── models.py              # Data models
+├── config.py              # Configuration management
+├── improved_pii_service.py# Enhanced PII service
+├── regex_redactor.py      # Regex-based redaction
+├── prompt_generator.py    # Prompt generation for LLM
+├── pii_validator.py       # PII validation utilities
+├── evaluate_pii_model.py  # Model evaluation scripts
+├── fine_tune_ollama.py    # Ollama fine-tuning
+├── pii_dataset_generator.py # Synthetic PII data generator
+├── debug_logger.py        # Debug logging utilities
+├── run.py                 # Entry point script
+├── setup.sh               # Setup and install script
+├── requirements.txt       # Python dependencies
+├── config.env             # Environment configuration
+├── uploads/               # Uploaded files
+├── outputs/               # Redacted output files
+├── logs/                  # Log files
+└── venv/                  # Python virtual environment
 
 Frontend/
 ├── src/
-│   ├── components/      # React components
-│   ├── services/        # API services
-│   ├── types/           # TypeScript types
-│   └── App.tsx          # Main application
-├── public/              # Static assets
-└── vite.config.ts       # Vite configuration
+│   ├── components/        # React components
+│   ├── services/          # API services
+│   ├── types/             # TypeScript types
+│   └── App.tsx            # Main application
+├── node_modules/          # Node.js dependencies
+├── public/                # Static assets (add screenshots here)
+├── package.json           # NPM dependencies
+├── package-lock.json      # NPM lockfile
+├── tailwind.config.js     # Tailwind CSS config
+├── postcss.config.js      # PostCSS config
+├── vite.config.ts         # Vite configuration
+├── tsconfig.json          # TypeScript config
+├── tsconfig.app.json      # TypeScript app config
+├── tsconfig.node.json     # TypeScript node config
+├── index.html             # HTML entry point
+├── eslint.config.js       # ESLint config
+└── .gitignore             # Git ignore rules
 ```
 
 ## 🧪 Testing
