@@ -1,28 +1,6 @@
 # RedactPII
 
-[![Frontend Live](https://img.shields.io/badge/Frontend-Live-green)](https://frontend-one-rho-99.vercel.app/)  
-[![Backend Live](https://img.shields.io/badge/Backend-Live-blue)](https://backend-cd5r.onrender.com)
-
----
-
-> **Live Demo:**
-> - Frontend: [https://frontend-one-rho-99.vercel.app/](https://frontend-one-rho-99.vercel.app/)
-> - Backend: [https://backend-cd5r.onrender.com](https://backend-cd5r.onrender.com)
-
----
-
-## 🖼️ Screenshots
-
-> **Tip:** Place your screenshot images in a `screenshots/` or `public/` directory and update the image paths below as needed.
-
-### Frontend Dashboard
-![Frontend Dashboard](screenshots/frontend_dashboard.png)
-
-### Backend Dashboard
-![Backend Dashboard](screenshots/backend_dashboard.png)
-
-### Dark Mode
-![Dark Mode](screenshots/darkmode.png)
+[![Frontend Live](https://img.shields.io/badge/Frontend-Live-green)](https://frontend-one-rho-99.vercel.app/)  [![Backend Live](https://img.shields.io/badge/Backend-Live-blue)](https://backend-cd5r.onrender.com)
 
 ## 🚀 Features
 
@@ -57,6 +35,25 @@ RedactPII/
 - **Vite** - Fast development and build tool
 - **Tailwind CSS** - Utility-first styling
 - **Lucide Icons** - Modern icon library
+
+## 🖼️ Screenshots
+
+### Dashboard
+![Screenshot from 2025-06-23 13-18-28](https://github.com/user-attachments/assets/f272ebc9-ba9e-4ccf-96b0-1928dc9f811e)
+
+### Redaction Configuration : Auto-Detection
+![Screenshot from 2025-06-23 13-18-48](https://github.com/user-attachments/assets/957210d5-1a56-418d-99a5-387f949051f4)
+
+### Redaction Configuration : Select specific PII types
+![Screenshot from 2025-06-23 13-19-04](https://github.com/user-attachments/assets/bece6e7d-a825-443c-9b2e-abef7ff6f15e)
+
+### Custom Tags
+![Screenshot from 2025-06-23 13-19-13](https://github.com/user-attachments/assets/b64d90ee-96cf-43aa-9bf0-f9bb17a50103)
+
+### Dark Mode
+![Screenshot from 2025-06-23 13-21-18](https://github.com/user-attachments/assets/81e87f8e-b17b-4c53-804d-f105af7fa338)
+
+
 
 ## 🚀 Quick Start
 
@@ -164,18 +161,6 @@ Content-Type: application/json
   "custom_tags": {}
 }
 ```
-
-### File Processing
-```http
-POST /redact-file
-Content-Type: multipart/form-data
-
-- file: PDF or text file
-- redact_types: JSON array of PII types
-- export_format: "pdf", "txt", or "both"
-- preserve_pdf_format: boolean
-```
-
 ### Other Endpoints
 - `GET /health` - Health check
 - `GET /supported-types` - Get supported PII types
@@ -434,16 +419,6 @@ npm run test
 - Verify backend is running on port 8000
 - Check CORS settings in backend configuration
 - Ensure frontend is connecting to correct API endpoint
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Add tests for new functionality
-5. Commit your changes (`git commit -m 'Add amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
 
 ## 📝 License
 
